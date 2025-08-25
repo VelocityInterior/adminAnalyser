@@ -43,7 +43,6 @@ const SuperAdminLogin = () => {
     try {
       await dispatch(login(formData)).unwrap();
 
-      // Navigation will be handled by useEffect when isAuthenticated changes
     } catch (error) {
       console.error("Login failed:", error);
     }

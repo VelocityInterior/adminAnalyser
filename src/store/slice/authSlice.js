@@ -7,7 +7,7 @@ const initialState = {
   accessToken: localStorage.getItem("SuperAdminToken") || null,
   status: "idle",
   error: null,
-  isAuthenticated: false,
+  isAuthenticated: !!localStorage.getItem("SuperAdminToken"),
 };
 
 export const login = createAsyncThunk(
@@ -31,7 +31,7 @@ export const login = createAsyncThunk(
 );
 
 export const refreshToken = createAsyncThunk(
-  "auth/refreshToken",
+  "auth/refresh-token-superadmin",
   async (_, { rejectWithValue }) => {
     try {
       const res = await axiosInstance.post(
@@ -55,23 +55,22 @@ export const refreshToken = createAsyncThunk(
 
 export const logout = createAsyncThunk(
   "auth/logout",
-  async (_, { rejectWithValue }) => {
-    try {
-      await axiosInstance.post("/superadmin/logout");
-
-      // Clear localStorage
-      localStorage.removeItem("SuperAdminToken");
-      localStorage.removeItem("SuperAdminUser");
-
-      return {};
-    } catch (err) {
-      // Even if logout fails on server, clear local storage
-      localStorage.removeItem("SuperAdminToken");
-      localStorage.removeItem("SuperAdminUser");
-      return rejectWithValue(
-        err.response?.data || { message: "Logout failed" }
-      );
-    }
+  async (_, { dispatch }) => {
+    // Make backend call but don't wait for it to complete
+    const backendLogoutPromise = axiosInstance.post("/superadmin/logout")
+      .catch(err => {
+        console.warn("Backend logout failed:", err.message);
+      });
+    
+    // Immediately clear frontend state
+    localStorage.removeItem("SuperAdminToken");
+    localStorage.removeItem("SuperAdminUser");
+    dispatch(resetAuthState());
+    
+    // Wait for backend call to complete (but don't care about result)
+    await backendLogoutPromise;
+    
+    // No explicit return needed
   }
 );
 
@@ -107,13 +106,17 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     resetAuthState: (state) => {
+      // Clear localStorage (redundant but safe)
       localStorage.removeItem("SuperAdminToken");
       localStorage.removeItem("SuperAdminUser");
+      
+      // Return a new state object instead of mutating
       return {
         ...initialState,
         user: null,
         accessToken: null,
         isAuthenticated: false,
+        status: "idle",
       };
     },
     setAuthFromStorage: (state) => {
@@ -162,6 +165,15 @@ const authSlice = createSlice({
 
       // Logout cases
       .addCase(logout.fulfilled, (state) => {
+        // State is already reset by resetAuthState, just ensure consistency
+        state.user = null;
+        state.accessToken = null;
+        state.isAuthenticated = false;
+        state.status = "idle";
+        state.error = null;
+      })
+      .addCase(logout.rejected, (state) => {
+        // Even if rejected, ensure state is cleared
         state.user = null;
         state.accessToken = null;
         state.isAuthenticated = false;
@@ -187,5 +199,4 @@ const authSlice = createSlice({
 });
 
 export const { resetAuthState, setAuthFromStorage } = authSlice.actions;
-
 export default authSlice.reducer;

@@ -1,50 +1,34 @@
 // CompanyManagement.jsx
 import { useEffect, useState } from "react";
-import { FaEye, FaBan, FaPlay, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
-import moment from "moment";
 import { useNavigate } from "react-router-dom";
+import moment from "moment";
+import axiosInstance from "../../api/axios"; // ✅ adjust path to your axiosInstance
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../components/ui/dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../components/ui/select";
+import { Badge } from "../../components/ui/badge";
+import { FaEye, FaBan, FaPlay, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import PageContainer from "../../Components/pageLayout/PageContainer";
 
-const demoCompanies = [
-  {
-    id: "1",
-    name: "Studio A Interiors",
-    owner_name: "Alice Singh",
-    owner_email: "alice@studioa.com",
-    phone: "+1 123-456-7890",
-    city: "New York",
-    plan: "Pro",
-    status: "Active",
-    planEndDate: "2025-08-25",
-  },
-  {
-    id: "2",
-    name: "Design Hive",
-    owner_name: "Ravi Patel",
-    owner_email: "ravi@designhive.com",
-    phone: "+91 999-888-7777",
-    city: "Mumbai",
-    plan: "Enterprise",
-    status: "Suspended",
-    planEndDate: "2025-08-10",
-  },
-  {
-    id: "3",
-    name: "Modish Living",
-    owner_name: "Karen Taylor",
-    owner_email: "karen@modish.com",
-    phone: "+44 20 7946 0011",
-    city: "London",
-    plan: "Trial",
-    status: "Trial",
-    planEndDate: "2025-08-15",
-  },
-];
-
 const statusColor = {
-  Active: "text-green-400",
-  Suspended: "text-red-400",
-  Trial: "text-yellow-400",
+  Active: "bg-green-500",
+  Suspended: "bg-red-500",
+  Trial: "bg-yellow-500",
 };
 
 export default function CompanyManagement() {
@@ -54,11 +38,33 @@ export default function CompanyManagement() {
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState("");
   const navigate = useNavigate();
 
+  // ✅ Fetch tenants from backend with axiosInstance
   useEffect(() => {
-    setCompanies(demoCompanies);
-    setFiltered(demoCompanies);
+    const fetchTenants = async () => {
+      try {
+        const res = await axiosInstance.get("/tenants");
+        const mapped = res.data.map(({ tenant, admin }) => ({
+          id: tenant._id,
+          name: tenant.name,
+          city: tenant.location,
+          plan: tenant.planId?.name || "Free",
+          status: tenant.planId?.name === "Trial" ? "Trial" : "Active", // adjust if backend has real status
+          planEndDate: moment(tenant.updatedAt).add(30, "days"),
+          owner_name: admin?.name,
+          owner_email: admin?.email,
+          phone: admin?.phone,
+        }));
+        setCompanies(mapped);
+        setFiltered(mapped);
+      } catch (err) {
+        console.error("Failed to fetch tenants:", err);
+      }
+    };
+
+    fetchTenants();
   }, []);
 
   const handleSearch = () => {
@@ -70,213 +76,195 @@ export default function CompanyManagement() {
     setFiltered(result);
   };
 
-  const toggleStatus = (companyId) => {
-    const updateStatus = (status) =>
-      status === "Active" ? "Suspended" : "Active";
-    setCompanies((prev) =>
-      prev.map((c) =>
-        c.id === companyId ? { ...c, status: updateStatus(c.status) } : c
-      )
-    );
-    setFiltered((prev) =>
-      prev.map((c) =>
-        c.id === companyId ? { ...c, status: updateStatus(c.status) } : c
-      )
-    );
+  const toggleStatus = async (companyId) => {
+    try {
+      // ✅ Call backend API to toggle status (adjust endpoint if needed)
+      await axiosInstance.patch(`/tenants/${companyId}/toggle-status`);
+
+      setFiltered((prev) =>
+        prev.map((c) =>
+          c.id === companyId
+            ? {
+                ...c,
+                status: c.status === "Active" ? "Suspended" : "Active",
+              }
+            : c
+        )
+      );
+    } catch (err) {
+      console.error("Failed to toggle status:", err);
+    }
   };
 
-  const handleDelete = () => {
-    setFiltered((prev) => prev.filter((c) => c.id !== selectedCompany.id));
-    setShowConfirm(false);
+  const handleDelete = async () => {
+    try {
+      await axiosInstance.delete(`/tenants/${selectedCompany.id}`);
+      setFiltered((prev) => prev.filter((c) => c.id !== selectedCompany.id));
+      setShowConfirm(false);
+    } catch (err) {
+      console.error("Failed to delete tenant:", err);
+    }
+  };
+
+  const handleUpdatePlan = async () => {
+    try {
+      await axiosInstance.patch(`/tenants/${selectedCompany.id}/plan`, {
+        plan: selectedPlan,
+      });
+      setFiltered((prev) =>
+        prev.map((c) =>
+          c.id === selectedCompany.id ? { ...c, plan: selectedPlan } : c
+        )
+      );
+      setShowPlanModal(false);
+    } catch (err) {
+      console.error("Failed to update plan:", err);
+    }
   };
 
   const calculateDaysLeft = (endDate) => {
     const now = moment();
-    const end = moment(endDate);
-    const diff = end.diff(now, "days");
+    const diff = moment(endDate).diff(now, "days");
     return diff >= 0 ? `${diff} days` : "Expired";
   };
 
-  const handleRowClick = (id) => {
-    navigate(`/tenant/${id}`);
-  };
-
   return (
-    <PageContainer>
+    <PageContainer className="bg-white min-h-screen p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-zinc-100">Company Management</h1>
-        <button
-          className="bg-green-600 text-white px-4 py-2 rounded flex items-center gap-2 hover:bg-green-700"
-          onClick={() => navigate("/tenant/add")}
-        >
+        <Button onClick={() => navigate("/tenant/add")} className="flex gap-2">
           <FaPlus /> Add Tenant
-        </button>
+        </Button>
       </div>
 
       <div className="mb-6 flex gap-4">
-        <input
-          type="text"
-          className="bg-zinc-800 text-white border border-zinc-700 px-4 py-2 w-1/3 rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <Input
           placeholder="Search company or email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          className="w-1/3"
         />
-        <button
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          onClick={handleSearch}
-        >
-          Search
-        </button>
+        <Button onClick={handleSearch}>Search</Button>
       </div>
 
-      <div className="overflow-auto rounded-lg shadow border border-zinc-800">
-        <table className="w-full text-sm bg-zinc-900 text-zinc-200">
-          <thead className="bg-zinc-800 text-zinc-400 uppercase text-xs">
-            <tr>
-              <th className="p-3 text-left">Company</th>
-              <th className="p-3">Owner</th>
-              <th className="p-3">Email</th>
-              <th className="p-3">Phone</th>
-              <th className="p-3">City</th>
-              <th className="p-3">Plan</th>
-              <th className="p-3">Status</th>
-              <th className="p-3">Days Left</th>
-              <th className="p-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((company) => (
-              <tr
-                key={company.id}
-                className="border-b border-zinc-800 hover:bg-zinc-800 transition cursor-pointer"
-              >
-                <td
-                  className="p-3 font-semibold text-left"
-                  onClick={() => handleRowClick(company.id)}
+      <div className="rounded-md border border-zinc-800">
+        <Table>
+          <TableHeader>
+            <TableRow className='bg-white'>
+              <TableHead>Company</TableHead>
+              <TableHead>Owner</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>City</TableHead>
+              <TableHead>Plan</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Days Left</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((c) => (
+              <TableRow key={c.id} className="hover:bg-zinc-800/50">
+                <TableCell
+                  className="font-semibold cursor-pointer"
+                  onClick={() => navigate(`/tenant/${c.id}`)}
                 >
-                  {company.name}
-                </td>
-                <td className="p-3" onClick={() => handleRowClick(company.id)}>
-                  {company.owner_name}
-                </td>
-                <td className="p-3" onClick={() => handleRowClick(company.id)}>
-                  {company.owner_email}
-                </td>
-                <td className="p-3" onClick={() => handleRowClick(company.id)}>
-                  {company.phone}
-                </td>
-                <td className="p-3" onClick={() => handleRowClick(company.id)}>
-                  {company.city}
-                </td>
-                <td className="p-3" onClick={() => handleRowClick(company.id)}>
-                  {company.plan}
-                </td>
-                <td
-                  className={`p-3 font-semibold ${statusColor[company.status]}`}
-                  onClick={() => handleRowClick(company.id)}
-                >
-                  {company.status}
-                </td>
-                <td className="p-3" onClick={() => handleRowClick(company.id)}>
-                  {calculateDaysLeft(company.planEndDate)}
-                </td>
-                <td className="p-3 flex gap-2">
-                  <button
-                    className="text-blue-400 hover:text-blue-500"
-                    title="View"
-                  >
+                  {c.name}
+                </TableCell>
+                <TableCell>{c.owner_name}</TableCell>
+                <TableCell>{c.owner_email}</TableCell>
+                <TableCell>{c.phone}</TableCell>
+                <TableCell>{c.city}</TableCell>
+                <TableCell>{c.plan}</TableCell>
+                <TableCell>
+                  <Badge className={statusColor[c.status]}>{c.status}</Badge>
+                </TableCell>
+                <TableCell>{calculateDaysLeft(c.planEndDate)}</TableCell>
+                <TableCell className="flex gap-2">
+                  <Button size="icon" variant="ghost">
                     <FaEye />
-                  </button>
-                  <button
-                    className={
-                      company.status === "Active"
-                        ? "text-red-400 hover:text-red-500"
-                        : "text-green-400 hover:text-green-500"
-                    }
-                    title={company.status === "Active" ? "Suspend" : "Activate"}
-                    onClick={() => toggleStatus(company.id)}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => toggleStatus(c.id)}
                   >
-                    {company.status === "Active" ? <FaBan /> : <FaPlay />}
-                  </button>
-                  <button
-                    className="text-yellow-400 hover:text-yellow-500"
-                    title="Edit"
+                    {c.status === "Active" ? <FaBan /> : <FaPlay />}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
                     onClick={() => {
-                      setSelectedCompany(company);
+                      setSelectedCompany(c);
+                      setSelectedPlan(c.plan);
                       setShowPlanModal(true);
                     }}
                   >
                     <FaEdit />
-                  </button>
-                  <button
-                    className="text-zinc-400 hover:text-zinc-200"
-                    title="Delete"
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
                     onClick={() => {
-                      setSelectedCompany(company);
+                      setSelectedCompany(c);
                       setShowConfirm(true);
                     }}
                   >
                     <FaTrash />
-                  </button>
-                </td>
-              </tr>
+                  </Button>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
 
-      {/* Confirm Delete Modal */}
-      {showConfirm && selectedCompany && (
-        <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50">
-          <div className="bg-zinc-900 text-white p-6 rounded shadow border border-zinc-700 w-[300px]">
-            <p className="mb-4 text-red-500">
-              Delete <strong>{selectedCompany.name}</strong>?
-            </p>
-            <div className="flex justify-end gap-4">
-              <button
-                className="bg-zinc-700 px-3 py-1 rounded hover:bg-zinc-600"
-                onClick={() => setShowConfirm(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                onClick={handleDelete}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Confirm Delete Dialog */}
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-red-500">Confirm Delete</DialogTitle>
+          </DialogHeader>
+          <p>
+            Are you sure you want to delete{" "}
+            <strong>{selectedCompany?.name}</strong>?
+          </p>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setShowConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Update Plan Modal */}
-      {showPlanModal && selectedCompany && (
-        <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50">
-          <div className="bg-zinc-900 text-white p-6 rounded shadow border border-zinc-700 w-[300px]">
-            <h3 className="text-lg font-semibold mb-4">Update Plan</h3>
-            <select className="w-full bg-zinc-800 border border-zinc-700 rounded p-2 mb-4 text-white">
-              <option>Free</option>
-              <option>Pro</option>
-              <option>Enterprise</option>
-            </select>
-            <div className="flex justify-end gap-4">
-              <button
-                className="bg-zinc-700 px-3 py-1 rounded hover:bg-zinc-600"
-                onClick={() => setShowPlanModal(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                onClick={() => setShowPlanModal(false)}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Update Plan Dialog */}
+      <Dialog open={showPlanModal} onOpenChange={setShowPlanModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Plan</DialogTitle>
+          </DialogHeader>
+          <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select plan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Free">Free</SelectItem>
+              <SelectItem value="Trial">Trial</SelectItem>
+              <SelectItem value="Pro">Pro</SelectItem>
+              <SelectItem value="Enterprise">Enterprise</SelectItem>
+            </SelectContent>
+          </Select>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setShowPlanModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdatePlan}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageContainer>
   );
 }

@@ -1,5 +1,3 @@
-// src/api/axios.js
-
 import axios from "axios";
 import store from "../store/store";
 import { refreshToken, resetAuthState } from "../store/slice/authSlice";
@@ -36,6 +34,7 @@ let isRefreshing = false;
 let failedQueue = [];
 
 const processQueue = (error, token = null) => {
+  console.log("Processing queued requests:", failedQueue.length);
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
@@ -51,15 +50,12 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
-    // Check if it's a 401 error and not already retried
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
       !originalRequest.url.includes("/login") &&
-      !originalRequest.url.includes("/refresh-token")
+      !originalRequest.url.includes("/refresh-token-superadmin")
     ) {
-      // If already refreshing, queue the request
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -68,7 +64,7 @@ axiosInstance.interceptors.response.use(
             originalRequest.headers["Authorization"] = `Bearer ${token}`;
             return axiosInstance(originalRequest);
           })
-          .catch(Promise.reject);
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;

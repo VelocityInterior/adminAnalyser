@@ -1,4 +1,25 @@
-import { useState, useEffect } from "react";
+"use client";
+
+import { useEffect, useState, useMemo } from "react";
+import axiosInstance from "../../api/axios";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "../../components/ui/dialog";
 
 const STATUS_COLORS = {
   Active: "bg-green-100 text-green-800",
@@ -7,353 +28,165 @@ const STATUS_COLORS = {
   Overdue: "bg-red-100 text-red-800",
 };
 
-// Dummy demo data
-const demoBillingData = [
-  {
-    id: "1",
-    companyName: "DesignCo",
-    planName: "Pro",
-    status: "Active",
-    startDate: "2024-01-01",
-    renewalDate: "2024-07-01",
-    monthlyCost: 100,
-    lastPaymentDate: "2024-06-01",
-    nextPaymentDue: "2024-07-01",
-  },
-  {
-    id: "2",
-    companyName: "InteriorWorks",
-    planName: "Enterprise",
-    status: "Overdue",
-    startDate: "2023-05-10",
-    renewalDate: "2024-05-10",
-    monthlyCost: 500,
-    lastPaymentDate: "2024-04-10",
-    nextPaymentDue: "2024-05-10",
-  },
-  {
-    id: "3",
-    companyName: "HomeStyler",
-    planName: "Trial",
-    status: "Trial",
-    startDate: "2024-06-10",
-    renewalDate: "2024-07-10",
-    monthlyCost: 0,
-    lastPaymentDate: null,
-    nextPaymentDue: "2024-07-10",
-  },
-];
-
 export default function BillingList() {
-  const [billingData, setBillingData] = useState([]);
+  const [tenants, setTenants] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [selectedTenant, setSelectedTenant] = useState(null);
-  const [statusFilter, setStatusFilter] = useState("");
 
+  // Fetch tenants from API
   useEffect(() => {
-    // In real app: fetch('/admin/tenants/billing')
-    setBillingData(demoBillingData);
+    const fetchTenants = async () => {
+      try {
+        const res = await axiosInstance.get("/tenants");
+        setTenants(res.data);
+      } catch (err) {
+        console.error("Failed to fetch tenants:", err);
+      }
+    };
+    fetchTenants();
   }, []);
 
-  const filteredData = billingData.filter((tenant) => {
-    const matchSearch = tenant.companyName
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchStatus = statusFilter ? tenant.status === statusFilter : true;
-    return matchSearch && matchStatus;
+  // Prepare plans for filter dropdown
+  const plansArray = useMemo(() => {
+    if (!tenants) return [];
+    return tenants.map(({ tenant }) => tenant.planId);
+  }, [tenants]);
+
+  const filteredPlans = useMemo(() => {
+    const planMap = {};
+    plansArray.forEach(plan => {
+      if (!planMap[plan.name]) planMap[plan.name] = plan;
+      else {
+        if (new Date(plan.createdAt) > new Date(planMap[plan.name].createdAt)) {
+          planMap[plan.name] = plan;
+        }
+      }
+    });
+    return Object.values(planMap);
+  }, [plansArray]);
+
+  // Filter tenants by search term and selected plan
+  const filteredTenants = tenants.filter(({ tenant }) => {
+    const matchSearch = tenant.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchPlan = statusFilter === "all" ? true : tenant.planId.name === statusFilter;
+    return matchSearch && matchPlan;
   });
 
   return (
-    <>
-      <div className="p-6 bg-white rounded shadow">
-        <h2 className="text-2xl font-semibold mb-4">
-          Subscription & Billing Management
-        </h2>
+    <div className="p-6 bg-gray-50">
+      <h2 className="text-2xl font-semibold mb-4">Subscription & Billing Management</h2>
 
-        {/* Search & Filters */}
-        <div className="flex flex-wrap gap-4 mb-6 items-center">
-          <input
-            type="text"
-            placeholder="Search company..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="border px-3 py-2 rounded w-full max-w-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          <select
-            className="border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All Statuses</option>
-            {Object.keys(STATUS_COLORS).map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Billing Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse border border-gray-200">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border border-gray-300 px-4 py-2">
-                  Company Name
-                </th>
-                <th className="border border-gray-300 px-4 py-2">Plan Name</th>
-                <th className="border border-gray-300 px-4 py-2">Status</th>
-                <th className="border border-gray-300 px-4 py-2">Start Date</th>
-                <th className="border border-gray-300 px-4 py-2">
-                  Renewal Date
-                </th>
-                <th className="border border-gray-300 px-4 py-2">
-                  Monthly Cost
-                </th>
-                <th className="border border-gray-300 px-4 py-2">
-                  Last Payment
-                </th>
-                <th className="border border-gray-300 px-4 py-2">Next Due</th>
-                <th className="border border-gray-300 px-4 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredData.length === 0 && (
-                <tr>
-                  <td colSpan="9" className="text-center py-6 text-gray-500">
-                    No companies found.
-                  </td>
-                </tr>
-              )}
-              {filteredData.map((tenant) => (
-                <tr
-                  key={tenant.id}
-                  className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() => setSelectedTenant(tenant)}
-                >
-                  <td className="border border-gray-300 px-4 py-2">
-                    {tenant.companyName}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    {tenant.planName}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    <span
-                      className={`inline-block px-2 py-1 text-xs font-semibold rounded ${
-                        STATUS_COLORS[tenant.status]
-                      }`}
-                    >
-                      {tenant.status}
-                    </span>
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    {tenant.startDate}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    {tenant.renewalDate}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    ₹{tenant.monthlyCost}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    {tenant.lastPaymentDate || "N/A"}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    {tenant.nextPaymentDue}
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedTenant(tenant);
-                      }}
-                      className="text-blue-600 hover:underline"
-                    >
-                      View Details
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Detail Drawer */}
-      {selectedTenant && (
-        <BillingDetailDrawer
-          tenant={selectedTenant}
-          onClose={() => setSelectedTenant(null)}
+      {/* Search & Filter */}
+      <div className="flex flex-wrap gap-4 mb-6 items-center">
+        <Input
+          placeholder="Search company..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-xs"
         />
-      )}
-    </>
-  );
-}
-
-// BillingDetailDrawer component below (can also be split into separate file)
-function BillingDetailDrawer({ tenant, onClose }) {
-  // Placeholder usage stats - replace with API data
-  const usage = {
-    users: { used: 8, limit: 10 },
-    projects: { used: 25, limit: 30 },
-    storage: { used: 4.5, limit: 10 }, // GB
-  };
-
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-40 z-40 flex justify-end"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white w-full max-w-lg h-full p-6 overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <header className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-semibold">
-            {tenant.companyName} - Billing Details
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-600 hover:text-gray-900 text-2xl font-bold"
-            aria-label="Close"
-          >
-            ×
-          </button>
-        </header>
-
-        {/* Plan Info */}
-        <section className="mb-6">
-          <h4 className="font-semibold mb-2">Current Plan</h4>
-          <p>
-            <strong>{tenant.planName}</strong> plan with limits:
-          </p>
-          <ul className="list-disc list-inside ml-4">
-            <li>Users: {usage.users.limit}</li>
-            <li>Projects: {usage.projects.limit}</li>
-            <li>Storage: {usage.storage.limit} GB</li>
-          </ul>
-        </section>
-
-        {/* Usage Stats */}
-        <section className="mb-6">
-          <h4 className="font-semibold mb-2">Current Usage</h4>
-          <UsageBar
-            label="Users"
-            used={usage.users.used}
-            limit={usage.users.limit}
-          />
-          <UsageBar
-            label="Projects"
-            used={usage.projects.used}
-            limit={usage.projects.limit}
-          />
-          <UsageBar
-            label="Storage (GB)"
-            used={usage.storage.used}
-            limit={usage.storage.limit}
-          />
-        </section>
-
-        {/* Billing & Payment Info */}
-        <section className="mb-6">
-          <h4 className="font-semibold mb-2">Billing Info</h4>
-          <p>
-            <strong>Subscription Status:</strong>{" "}
-            <span
-              className={`inline-block px-2 py-1 rounded text-sm ${
-                tenant.status === "Active"
-                  ? "bg-green-100 text-green-800"
-                  : tenant.status === "Trial"
-                  ? "bg-yellow-100 text-yellow-800"
-                  : tenant.status === "Overdue"
-                  ? "bg-red-100 text-red-800"
-                  : "bg-gray-100 text-gray-600"
-              }`}
-            >
-              {tenant.status}
-            </span>
-          </p>
-          <p>
-            <strong>Payment Method:</strong> **** **** **** 1234
-          </p>
-          <p>
-            <strong>Billing Address:</strong> 123 Design St, Creativity City,
-            45678
-          </p>
-          <p>
-            <strong>GST Number:</strong> 22AAAAA0000A1Z5
-          </p>
-        </section>
-
-        {/* Invoice History */}
-        <section className="mb-6">
-          <h4 className="font-semibold mb-2">Invoice History</h4>
-          <ul className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded p-3">
-            {/* Dummy invoice items */}
-            {[1, 2, 3].map((i) => (
-              <li
-                key={i}
-                className="flex justify-between items-center border-b border-gray-100 pb-1"
-              >
-                <span>
-                  Invoice #{1000 + i} - 2024-06-0{i}
-                </span>
-                <button className="text-blue-600 hover:underline">
-                  Download PDF
-                </button>
-              </li>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Filter by Plan" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Plans</SelectItem>
+            {filteredPlans.map((plan) => (
+              <SelectItem key={plan._id} value={plan.name}>
+                {plan.name}
+              </SelectItem>
             ))}
-          </ul>
-        </section>
+          </SelectContent>
+        </Select>
+      </div>
 
-        {/* Admin Actions */}
-        <section className="mb-6">
-          <h4 className="font-semibold mb-2">Admin Actions</h4>
-          <div className="flex flex-wrap gap-3">
-            <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-              Upgrade / Downgrade Plan
-            </button>
-            <button className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
-              Extend Trial Period
-            </button>
-            <button className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-              Pause Billing
-            </button>
-            <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
-              Resend Invoice
-            </button>
-            <button className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-              Refund Last Payment
-            </button>
-            <button className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
-              Apply Discount
-            </button>
-          </div>
-        </section>
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Company Name</TableHead>
+              <TableHead>Plan</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Users</TableHead>
+              <TableHead>Projects</TableHead>
+              <TableHead>Storage (MB)</TableHead>
+              <TableHead>Admin</TableHead>
+              <TableHead>Price</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredTenants.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={9} className="text-center py-6 text-gray-500">
+                  No tenants found.
+                </TableCell>
+              </TableRow>
+            )}
+            {filteredTenants.map(({ tenant, admin }) => (
+              <TableRow
+                key={tenant._id}
+                className="hover:bg-gray-50 cursor-pointer"
+              >
+                <TableCell>{tenant.name}</TableCell>
+                <TableCell>{tenant.planId.name}</TableCell>
+                <TableCell>
+                  <span
+                    className={`inline-block px-2 py-1 text-xs font-semibold rounded ${
+                      STATUS_COLORS[tenant.planId.name] || "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {tenant.planId.name}
+                  </span>
+                </TableCell>
+                <TableCell>{tenant.createdUsers}</TableCell>
+                <TableCell>{tenant.createdProjects}</TableCell>
+                <TableCell>{tenant.usedStorageMB}</TableCell>
+                <TableCell>{admin?.name}</TableCell>
+                <TableCell>{tenant.planId.price}</TableCell>
+                <TableCell>
+                  <Button
+                    size="sm"
+                    onClick={() => setSelectedTenant({ tenant, admin })}
+                  >
+                    View Details
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
-    </div>
-  );
-}
 
-// UsageBar component for showing usage visually
-function UsageBar({ label, used, limit }) {
-  const percent = Math.min(100, Math.round((used / limit) * 100));
-  return (
-    <div className="mb-3">
-      <div className="flex justify-between text-sm mb-1">
-        <span>{label}</span>
-        <span>
-          {used} / {limit}
-        </span>
-      </div>
-      <div className="w-full h-4 bg-gray-200 rounded overflow-hidden">
-        <div
-          className={`h-4 rounded bg-blue-600`}
-          style={{ width: `${percent}%` }}
-          title={`${percent}% used`}
-        ></div>
-      </div>
+      {/* Dialog for details */}
+      {selectedTenant && (
+        <Dialog
+          open={!!selectedTenant}
+          onOpenChange={() => setSelectedTenant(null)}
+        >
+          <DialogContent className="max-w-md w-full p-6 rounded-lg">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedTenant.tenant.name} - Billing Details
+              </DialogTitle>
+              <DialogClose onClick={() => setSelectedTenant(null)} />
+            </DialogHeader>
+
+            <div className="space-y-4 mt-4">
+              <p><strong>Location:</strong> {selectedTenant.tenant.location}</p>
+              <p><strong>Plan:</strong> {selectedTenant.tenant.planId.name}</p>
+              <p><strong>Max Users:</strong> {selectedTenant.tenant.planId.maxUsers}</p>
+              <p><strong>Max Projects:</strong> {selectedTenant.tenant.planId.maxProjects}</p>
+              <p><strong>Max Storage:</strong> {selectedTenant.tenant.planId.maxStorageMB} MB</p>
+              <p><strong>Price:</strong> {selectedTenant.tenant.planId.price}</p>
+              <p>
+                <strong>Admin:</strong> {selectedTenant.admin?.name} ({selectedTenant.admin?.email})
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

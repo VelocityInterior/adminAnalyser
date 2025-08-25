@@ -44,7 +44,6 @@ const ProtectedRoute = ({ children }) => {
               await dispatch(initializeAuth()).unwrap();
             } catch (error) {
               console.error("Auth initialization failed:", error);
-              // If server validation fails, the initializeAuth will clear storage
             }
           }
         }
