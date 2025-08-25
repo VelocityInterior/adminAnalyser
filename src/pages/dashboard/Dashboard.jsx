@@ -132,9 +132,6 @@ export default function CompanyManagement() {
     <PageContainer className="bg-white min-h-screen p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-zinc-100">Company Management</h1>
-        <Button onClick={() => navigate("/tenant/add")} className="flex gap-2">
-          <FaPlus /> Add Tenant
-        </Button>
       </div>
 
       <div className="mb-6 flex gap-4">
