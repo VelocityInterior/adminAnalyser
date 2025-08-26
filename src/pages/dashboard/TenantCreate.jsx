@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
@@ -153,7 +152,7 @@ export default function TenantP() {
     <div className="p-6 space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-red-500">Tenant Management</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-white">Tenant Management</h1>
           <p className="text-muted-foreground">
             Manage all tenants and their subscription plans
           </p>
@@ -195,7 +194,7 @@ export default function TenantP() {
                   <TableHead>Location</TableHead>
                   <TableHead>Users</TableHead>
                   <TableHead>Projects</TableHead>
-                  <TableHead>Status</TableHead>
+                  {/* <TableHead>Status</TableHead> */}
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -330,4 +329,3 @@ export default function TenantP() {
     </div>
   );
 }
-

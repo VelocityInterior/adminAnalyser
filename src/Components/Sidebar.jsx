@@ -12,6 +12,7 @@ import {
   FaBars,
   FaTimes,
   FaUserCircle,
+  FaCog
 } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -59,6 +60,13 @@ export default function Sidebar() {
     { icon: FaTicketAlt, label: "Support Desk", path: "/AdminSupportDesk", category: "support" },
     { icon: FaBullhorn, label: "Billing Console", path: "/AdminBillingConsole", category: "communication" },
     { icon: FaBars, label: "Plan", path: "/plan", category: "system" },
+   {
+      icon: FaCog,
+      label: "Settings",
+      path: "/settings",
+      category: "system",
+      disabled: true,
+    }
   ];
 
   // ✅ Proper logout handler

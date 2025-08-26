@@ -121,15 +121,15 @@ export default function TenantUserManager() {
   }
 
   return (
-    <div className="p-6 min-h-screen bg-white">
-      <h2 className="text-2xl font-bold mb-4">Tenant User Manager</h2>
+    <div className="p-6 min-h-screen">
+      <h2 className="text-2xl font-bold mb-4 text-white">Tenant User Manager</h2>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-4">
         <Input
           placeholder="Search by name, email, or company"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm"
+          className="max-w-sm text-white"
         />
         <Button onClick={fetchTenantUsers}>Refresh</Button>
       </div>

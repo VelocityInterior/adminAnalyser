@@ -1,3 +1,4 @@
+
 // CompanyManagement.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -51,7 +52,7 @@ export default function CompanyManagement() {
           name: tenant.name,
           city: tenant.location,
           plan: tenant.planId?.name || "Free",
-          status: tenant.planId?.name === "Trial" ? "Trial" : "Active", // adjust if backend has real status
+          status: tenant.planId?.name === "Trial" ? "Active" : "Active", // adjust if backend has real status
           planEndDate: moment(tenant.updatedAt).add(30, "days"),
           owner_name: admin?.name,
           owner_email: admin?.email,
