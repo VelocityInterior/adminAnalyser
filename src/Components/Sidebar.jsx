@@ -17,6 +17,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../store/slice/authSlice"; // ✅ make sure path is correct
+import path from "path";
 
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -66,6 +67,18 @@ export default function Sidebar() {
       path: "/settings",
       category: "system",
       disabled: true,
+    },
+    {
+      icon:FaBars,
+      label:"Bug",
+      path:"/issue",
+      category:"Bug",
+
+    },{
+      icon: FaBullhorn,
+      label:"issue",
+      path:"/ticket",
+      category:"ticket"
     }
   ];
 
