@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axiosInstance from "../api/axios";
-import { Trash2, MessageSquare, CheckCircle, AlertTriangle } from "lucide-react";
+import { Trash2, MessageSquare } from "lucide-react";
 
 const TicketSuperAdmin = () => {
   const [tickets, setTickets] = useState([]);
@@ -63,6 +63,47 @@ const TicketSuperAdmin = () => {
     fetchTickets();
   }, []);
 
+  // ✅ Render attachments
+  const renderAttachments = (attachments) => {
+    if (!attachments || attachments.length === 0) return null;
+    return (
+      <div className="mt-2 flex flex-wrap gap-3">
+        {attachments.map((att, index) => {
+          if (att.type === "image") {
+            return (
+              <div key={index} className="flex flex-col items-center">
+              <img
+                src={att.url}
+                alt={att.name}
+                className="max-w-xs rounded-md border mb-1"
+              />
+              <a
+                href={att.url}
+                download={att.name}
+                className="text-blue-600 hover:underline text-xs"
+              >
+                Download
+              </a>
+              </div>
+            );
+          } else {
+            return (
+              <a
+                key={index}
+                href={att.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block text-blue-600 hover:underline text-sm"
+              >
+                {att.name}
+              </a>
+            );
+          }
+        })}
+      </div>
+    );
+  };
+
   if (loading) {
     return <p className="p-6 text-gray-600">Loading Issues...</p>;
   }
@@ -81,6 +122,9 @@ const TicketSuperAdmin = () => {
             <div>
               <h3 className="text-lg font-semibold text-gray-800">{ticket.title}</h3>
               <p className="text-gray-600 mt-1">{ticket.description}</p>
+
+              {/* Attachments */}
+              {renderAttachments(ticket.attachments)}
             </div>
 
             {/* Status */}
@@ -89,11 +133,11 @@ const TicketSuperAdmin = () => {
               <span
                 className={`ml-2 px-3 py-1 text-xs rounded-full font-semibold
                   ${
-                    ticket.status === "resolved"
-                      ? "bg-green-100 text-green-700"
-                      : ticket.status === "closed"
+                    ticket.status === "closed"
                       ? "bg-red-100 text-red-700"
-                      : "bg-yellow-100 text-yellow-700"
+                      : ticket.status === "resolving"
+                      ? "bg-yellow-100 text-yellow-700"
+                      : "bg-gray-100 text-gray-700"
                   }`}
               >
                 {ticket.status}
