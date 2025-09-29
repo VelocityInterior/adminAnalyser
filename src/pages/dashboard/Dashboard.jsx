@@ -1,4 +1,3 @@
-
 // CompanyManagement.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -11,18 +10,24 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../../components/ui/table";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
+} from "../../Components/ui/table";
+import { Button } from "../../Components/ui/button";
+import { Input } from "../../Components/ui/input";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../../components/ui/dialog";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../components/ui/select";
-import { Badge } from "../../components/ui/badge";
+} from "../../Components/ui/dialog";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "../../Components/ui/select";
+import { Badge } from "../../Components/ui/badge";
 import { FaEye, FaBan, FaPlay, FaEdit, FaTrash, FaPlus } from "react-icons/fa";
 import PageContainer from "../../Components/pageLayout/PageContainer";
 
@@ -148,7 +153,7 @@ export default function CompanyManagement() {
       <div className="rounded-md border border-zinc-800">
         <Table>
           <TableHeader>
-            <TableRow className='bg-white'>
+            <TableRow className="bg-white">
               <TableHead>Company</TableHead>
               <TableHead>Owner</TableHead>
               <TableHead>Email</TableHead>
