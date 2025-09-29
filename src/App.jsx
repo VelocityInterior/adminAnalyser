@@ -20,7 +20,7 @@ import AddTenant from "./pages/dashboard/components/Addtenant";
 import TenantDetail from "./pages/dashboard/components/TenantDetail";
 import SuperAdminLogin from "./pages/login/SuperAdminLogin";
 import ProtectedRoute from "./pages/login/ProtectedRoute";
-import Plan from "./pages/dashboard/plan";
+import Plan from "./pages/dashboard/Plan";
 import TenantP from "./pages/dashboard/TenantCreate";
 
 // Layout component for protected routes
