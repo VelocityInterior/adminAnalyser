@@ -22,6 +22,9 @@ import SuperAdminLogin from "./pages/login/SuperAdminLogin";
 import ProtectedRoute from "./pages/login/ProtectedRoute";
 import Plan from "./pages/dashboard/Plan";
 import TenantP from "./pages/dashboard/TenantCreate";
+import Issue from "./issue/issue";
+import { Ticket } from "lucide-react";
+import TicketSuperAdmin from "./issue/ticket";
 
 // Layout component for protected routes
 const ProtectedLayout = ({ children }) => {
@@ -228,7 +231,18 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path ="/issue" element={
+          <ProtectedLayout>
+            <Issue />
+          </ProtectedLayout>
+        }/>
+         <Route path ="/ticket" element={
+          <ProtectedLayout>
+            <TicketSuperAdmin />
+          </ProtectedLayout>
+        }/>
       </Routes>
+      
     </div>
   );
 }
