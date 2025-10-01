@@ -7,27 +7,6 @@ import { Button } from "../../components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
 import { FaRedo, FaUserShield, FaUserTimes, FaUserCheck, FaUserSecret, FaSearch, FaFilter } from "react-icons/fa";
 import moment from "moment";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogClose,
-} from "../../components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "../../components/ui/alert-dialog";
 import { Label } from "../../components/ui/label";
 import { Skeleton } from "../../components/ui/skeleton";
 
@@ -97,9 +76,6 @@ export default function CompanyUserManagement() {
   };
 
   const changeUserRole = async (id, role) => {
-    // Optionally call API to update user role
-    // await axiosInstance.patch(`/users/${id}/role`, { role });
-    
     setUsers((prev) =>
       prev.map((u) =>
         u.id === id ? { ...u, role } : u
@@ -115,7 +91,6 @@ export default function CompanyUserManagement() {
     setSearch("");
   };
 
-  // Skeleton loading component
   const UserSkeleton = () => (
     <TableRow>
       <TableCell><Skeleton className="h-4 w-32" /></TableCell>
@@ -135,18 +110,18 @@ export default function CompanyUserManagement() {
   );
 
   return (
-    <div className="p-4 md:p-6 space-y-6 min-h-screen bg-black text-white">
+    <div className="p-4 md:p-6 space-y-6 min-h-screen bg-white text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold">User Management</h2>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-400">
+          <span className="text-sm text-gray-500">
             {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'} found
           </span>
           <Button 
             variant="outline" 
             size="sm" 
             onClick={resetFilters}
-            className="text-xs text-black"
+            className="text-xs"
           >
             Clear Filters
           </Button>
@@ -154,11 +129,11 @@ export default function CompanyUserManagement() {
       </div>
 
       {/* Filters */}
-      <div className="bg-black p-4 rounded-lg">
+      <div className="bg-white p-4 rounded-lg border border-gray-200">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="search" className="flex items-center gap-2">
-              <FaSearch className="text-white" />
+            <Label htmlFor="search" className="flex items-center gap-2 text-black">
+              <FaSearch />
               Search
             </Label>
             <Input
@@ -166,17 +141,17 @@ export default function CompanyUserManagement() {
               placeholder="Search name or email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-black"
+              className="w-full bg-white border-gray-300 text-black"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="role-filter" className="flex items-center gap-2">
-              <FaFilter className="text-gray-400" />
+            <Label htmlFor="role-filter" className="flex items-center gap-2 text-black">
+              <FaFilter className="text-gray-500" />
               Role
             </Label>
             <Select value={filterRole} onValueChange={setFilterRole}>
-              <SelectTrigger id="role-filter" className="w-full bg-black">
+              <SelectTrigger id="role-filter" className="w-full bg-white border-gray-300">
                 <SelectValue placeholder="Select Role" />
               </SelectTrigger>
               <SelectContent>
@@ -191,12 +166,12 @@ export default function CompanyUserManagement() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="status-filter" className="flex items-center gap-2">
-              <FaFilter className="text-gray-400" />
+            <Label htmlFor="status-filter" className="flex items-center gap-2 text-black">
+              <FaFilter className="text-gray-500" />
               Status
             </Label>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger id="status-filter" className="w-full bg-black">
+              <SelectTrigger id="status-filter" className="w-full bg-white border-gray-300">
                 <SelectValue placeholder="Select Status" />
               </SelectTrigger>
               <SelectContent>
@@ -210,33 +185,28 @@ export default function CompanyUserManagement() {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border border-gray-700 overflow-hidden">
+      <div className="rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <Table className="min-w-full">
-            <TableHeader className="bg-black">
-              <TableRow>
-                <TableHead className="text-gray-300">Name</TableHead>
-                <TableHead className="text-gray-300">Email</TableHead>
-                <TableHead className="text-gray-300">Phone</TableHead>
-                <TableHead className="text-gray-300">Role</TableHead>
-                <TableHead className="text-gray-300">Status</TableHead>
-                <TableHead className="text-gray-300">Last Login</TableHead>
-                <TableHead className="text-gray-300">Device</TableHead>
-                <TableHead className="text-gray-300 text-right">Actions</TableHead>
+            <TableHeader>
+              <TableRow className="bg-gray-100">
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Last Login</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                // Show skeleton loaders while loading
-                Array.from({ length: 5 }).map((_, index) => (
-                  <UserSkeleton key={index} />
-                ))
+                Array.from({ length: 5 }).map((_, index) => <UserSkeleton key={index} />)
               ) : filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
-                  <TableRow key={user.id} className="border-gray-700 hover:bg-gray-800/50">
+                  <TableRow key={user.id} className="hover:bg-gray-50">
                     <TableCell className="font-medium">{user.full_name}</TableCell>
-                    <TableCell className="text-gray-300">{user.email}</TableCell>
-                    <TableCell className="text-gray-300">{user.phone || "N/A"}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.phone || "N/A"}</TableCell>
                     <TableCell>
                       <Badge variant={roleColor[user.role] || "gray"} className="capitalize">
                         {user.role}
@@ -244,134 +214,18 @@ export default function CompanyUserManagement() {
                     </TableCell>
                     <TableCell>
                       {user.status === "Active" ? (
-                        <Badge variant="success" className="capitalize">
-                          Active
-                        </Badge>
+                        <Badge variant="success" className="capitalize">Active</Badge>
                       ) : (
-                        <Badge variant="destructive" className="capitalize">
-                          Suspended
-                        </Badge>
+                        <Badge variant="destructive" className="capitalize">Suspended</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-gray-300">
-                      {user.last_login ? moment(user.last_login).fromNow() : "Never"}
-                    </TableCell>
-                    <TableCell className="text-gray-300">{user.device}</TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-2">
-                        <Button variant="outline" size="icon" title="Reset Password" className="h-8 w-8 text-black">
-                          <FaRedo className="h-4 w-4" />
-                        </Button>
-                        
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant={user.status === "Active" ? "destructive" : "success"}
-                              size="icon"
-                              title={user.status === "Active" ? "Suspend User" : "Reactivate User"}
-                              className="h-8 w-8"
-                            >
-                              {user.status === "Active" ? (
-                                <FaUserTimes className="h-4 w-4" />
-                              ) : (
-                                <FaUserCheck className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                {user.status === "Active" ? "Suspend User" : "Activate User"}
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to {user.status === "Active" ? "suspend" : "activate"} {user.full_name}?
-                                {user.status === "Active" ? " They will no longer have access to the system." : " They will regain access to the system."}
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => toggleUserStatus(user.id)}
-                                className={user.status === "Active" ? "bg-destructive text-destructive-foreground" : "bg-green-600"}
-                              >
-                                {user.status === "Active" ? "Suspend" : "Activate"}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="secondary" 
-                              size="icon" 
-                              title="Change Role"
-                              className="h-8 w-8"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setNewRole(user.role);
-                              }}
-                            >
-                              <FaUserShield className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Change User Role</DialogTitle>
-                              <DialogDescription>
-                                Change the role for {selectedUser?.full_name}
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                              <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="role" className="text-right">
-                                  Role
-                                </Label>
-                                <Select value={newRole} onValueChange={setNewRole} className="col-span-3">
-                                  <SelectTrigger id="role">
-                                    <SelectValue placeholder="Select a role" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Owner">Owner</SelectItem>
-                                    <SelectItem value="Admin">Admin</SelectItem>
-                                    <SelectItem value="Designer">Designer</SelectItem>
-                                    <SelectItem value="Viewer">Viewer</SelectItem>
-                                    <SelectItem value="Site Manager">Site Manager</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-                            <DialogFooter>
-                              <DialogClose asChild>
-                                <Button variant="outline">Cancel</Button>
-                              </DialogClose>
-                              <Button 
-                                onClick={() => changeUserRole(selectedUser?.id, newRole)}
-                                disabled={!newRole || newRole === selectedUser?.role}
-                              >
-                                Update Role
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-
-                        <Button variant="secondary" size="icon" title="Impersonate" className="h-8 w-8">
-                          <FaUserSecret className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    <TableCell>{user.last_login ? moment(user.last_login).fromNow() : "Never"}</TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-64 text-center">
-                    <div className="flex flex-col items-center justify-center gap-2 text-gray-400">
-                      <FaUserTimes className="h-12 w-12" />
-                      <p className="text-lg font-medium">No users found</p>
-                      <p className="text-sm">
-                        Try adjusting your search or filter parameters
-                      </p>
-                    </div>
+                  <TableCell colSpan={6} className="h-64 text-center text-gray-500">
+                    No users found
                   </TableCell>
                 </TableRow>
               )}
