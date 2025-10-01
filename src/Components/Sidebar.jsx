@@ -12,7 +12,9 @@ import {
   FaBars,
   FaTimes,
   FaUserCircle,
-  FaCog
+  FaCog,
+  FaSearch,
+  FaSass
 } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -55,27 +57,19 @@ export default function Sidebar() {
     { icon: FaChartBar, label: "Tenant", path: "/tenantP", category: "main" },
     { icon: FaTachometerAlt, label: "Dashboard", path: "/dashboard", category: "main" },
     { icon: FaUsers, label: "User Management", path: "/usermanagement", category: "main" },
-    { icon: FaProjectDiagram, label: "Project List", path: "/AdminProjectList", category: "main" },
+    // { icon: FaSass, label: "Tenant Plans", path:"/tenantPlans", category: "main" },
     { icon: FaChartBar, label: "Billing List", path: "/BillingList", category: "reports" },
     { icon: FaHdd, label: "Tenant Manager", path: "/TenantUserManager", category: "system" },
-    { icon: FaTicketAlt, label: "Support Desk", path: "/AdminSupportDesk", category: "support" },
     { icon: FaBullhorn, label: "Billing Console", path: "/AdminBillingConsole", category: "communication" },
     { icon: FaBars, label: "Plan", path: "/plan", category: "system" },
-   {
-      icon: FaCog,
-      label: "Settings",
-      path: "/settings",
-      category: "system",
-      disabled: true,
-    },
     {
-      icon:FaBars,
+      icon:FaSearch,
       label:"Bug",
       path:"/issue",
       category:"Bug",
 
     },{
-      icon: FaBullhorn,
+      icon: FaTicketAlt,
       label:"issue",
       path:"/ticket",
       category:"ticket"

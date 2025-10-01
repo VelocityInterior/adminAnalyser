@@ -179,17 +179,17 @@ export default function CompanyManagement() {
                 </TableCell>
                 <TableCell>{calculateDaysLeft(c.planEndDate)}</TableCell>
                 <TableCell className="flex gap-2">
-                  <Button size="icon" variant="ghost">
+                  {/* <Button size="icon" variant="ghost">
                     <FaEye />
-                  </Button>
-                  <Button
+                  </Button> */}
+                  {/* <Button
                     size="icon"
                     variant="ghost"
                     onClick={() => toggleStatus(c.id)}
                   >
                     {c.status === "Active" ? <FaBan /> : <FaPlay />}
-                  </Button>
-                  <Button
+                  </Button> */}
+                  {/* <Button
                     size="icon"
                     variant="ghost"
                     onClick={() => {
@@ -199,7 +199,7 @@ export default function CompanyManagement() {
                     }}
                   >
                     <FaEdit />
-                  </Button>
+                  </Button> */}
                   <Button
                     size="icon"
                     variant="ghost"

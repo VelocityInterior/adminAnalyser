@@ -9,9 +9,7 @@ const TicketSuperAdmin = () => {
   // ✅ Fetch all tickets (super-admin only)
   const fetchTickets = async () => {
     try {
-      const res = await axiosInstance.get("/superadmin/tickets", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("SuperAdminToken")}` },
-      });
+      const res = await axiosInstance.get("/superadmin/tickets",);
       setTickets(res.data.tickets || []);
     } catch (error) {
       console.error("Error fetching tickets:", error);
@@ -26,7 +24,6 @@ const TicketSuperAdmin = () => {
       await axiosInstance.put(
         `/superadmin/tickets/${id}/status`,
         { status },
-        { headers: { Authorization: `Bearer ${localStorage.getItem("SuperAdminToken")}` } }
       );
       fetchTickets();
     } catch (error) {
@@ -39,7 +36,6 @@ const TicketSuperAdmin = () => {
     if (!window.confirm("Are you sure you want to delete this ticket?")) return;
     try {
       await axiosInstance.delete(`/superadmin/tickets/${id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("SuperAdminToken")}` },
       });
       fetchTickets();
     } catch (error) {
@@ -51,7 +47,6 @@ const TicketSuperAdmin = () => {
   const handleDeleteComment = async (ticketId, commentId) => {
     try {
       await axiosInstance.delete(`/superadmin/tickets/${ticketId}/comments/${commentId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("SuperAdminToken")}` },
       });
       fetchTickets();
     } catch (error) {
