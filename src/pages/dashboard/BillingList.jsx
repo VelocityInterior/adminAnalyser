@@ -47,15 +47,16 @@ export default function BillingList() {
     fetchTenants();
   }, []);
 
-  // Prepare plans for filter dropdown
-  const plansArray = useMemo(() => {
-    if (!tenants) return [];
-    return tenants.map(({ tenant }) => tenant.planId);
-  }, [tenants]);
+  // Prepare plans for filter dropdown, ignoring tenants without planId
+  const plansArray = useMemo(
+    () => tenants.map(({ tenant }) => tenant.planId).filter(Boolean),
+    [tenants]
+  );
 
   const filteredPlans = useMemo(() => {
     const planMap = {};
     plansArray.forEach(plan => {
+      if (!plan) return;
       if (!planMap[plan.name]) planMap[plan.name] = plan;
       else {
         if (new Date(plan.createdAt) > new Date(planMap[plan.name].createdAt)) {
@@ -69,12 +70,12 @@ export default function BillingList() {
   // Filter tenants by search term and selected plan
   const filteredTenants = tenants.filter(({ tenant }) => {
     const matchSearch = tenant.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchPlan = statusFilter === "all" ? true : tenant.planId.name === statusFilter;
+    const matchPlan = statusFilter === "all" ? true : tenant.planId?.name === statusFilter;
     return matchSearch && matchPlan;
   });
 
   return (
-    <div className="p-6 bg-gray-50">
+    <div className="p-6 bg-gray-50 min-h-screen">
       <h2 className="text-2xl font-semibold mb-4">Subscription & Billing Management</h2>
 
       {/* Search & Filter */}
@@ -130,21 +131,21 @@ export default function BillingList() {
                 className="hover:bg-gray-50 cursor-pointer"
               >
                 <TableCell>{tenant.name}</TableCell>
-                <TableCell>{tenant.planId.name}</TableCell>
+                <TableCell>{tenant.planId?.name || "N/A"}</TableCell>
                 <TableCell>
                   <span
                     className={`inline-block px-2 py-1 text-xs font-semibold rounded ${
-                      STATUS_COLORS[tenant.planId.name] || "bg-gray-100 text-gray-600"
+                      STATUS_COLORS[tenant.planId?.name] || "bg-gray-100 text-gray-600"
                     }`}
                   >
-                    {tenant.planId.name}
+                    {tenant.planId?.name || "N/A"}
                   </span>
                 </TableCell>
                 <TableCell>{tenant.createdUsers}</TableCell>
                 <TableCell>{tenant.createdProjects}</TableCell>
                 <TableCell>{tenant.usedStorageMB}</TableCell>
-                <TableCell>{admin?.name}</TableCell>
-                <TableCell>{tenant.planId.price}</TableCell>
+                <TableCell>{admin?.name || "N/A"}</TableCell>
+                <TableCell>{tenant.planId?.price || "-"}</TableCell>
                 <TableCell>
                   <Button
                     size="sm"
@@ -175,14 +176,17 @@ export default function BillingList() {
 
             <div className="space-y-4 mt-4">
               <p><strong>Location:</strong> {selectedTenant.tenant.location}</p>
-              <p><strong>Plan:</strong> {selectedTenant.tenant.planId.name}</p>
-              <p><strong>Max Users:</strong> {selectedTenant.tenant.planId.maxUsers}</p>
-              <p><strong>Max Projects:</strong> {selectedTenant.tenant.planId.maxProjects}</p>
-              <p><strong>Max Storage:</strong> {selectedTenant.tenant.planId.maxStorageMB} MB</p>
-              <p><strong>Price:</strong> {selectedTenant.tenant.planId.price}</p>
+              <p><strong>Plan:</strong> {selectedTenant.tenant.planId?.name || "N/A"}</p>
+              <p><strong>Max Users:</strong> {selectedTenant.tenant.planId?.maxUsers || 0}</p>
+              <p><strong>Max Projects:</strong> {selectedTenant.tenant.planId?.maxProjects || 0}</p>
+              <p><strong>Max Storage:</strong> {selectedTenant.tenant.planId?.maxStorageMB || 0} MB</p>
+              <p><strong>Price:</strong> {selectedTenant.tenant.planId?.price || 0}</p>
               <p>
-                <strong>Admin:</strong> {selectedTenant.admin?.name} ({selectedTenant.admin?.email})
+                <strong>Admin:</strong> {selectedTenant.admin?.name || "N/A"} ({selectedTenant.admin?.email || "N/A"})
               </p>
+              <p><strong>Subscription Active:</strong> {selectedTenant.tenant.isSubscriptionActive ? "Yes" : "No"}</p>
+              <p><strong>Subscription Start:</strong> {selectedTenant.tenant.subscriptionStartDate ? new Date(selectedTenant.tenant.subscriptionStartDate).toLocaleDateString() : "-"}</p>
+              <p><strong>Subscription End:</strong> {selectedTenant.tenant.subscriptionEndDate ? new Date(selectedTenant.tenant.subscriptionEndDate).toLocaleDateString() : "-"}</p>
             </div>
           </DialogContent>
         </Dialog>

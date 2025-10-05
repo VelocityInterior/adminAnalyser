@@ -25,6 +25,7 @@ import TenantP from "./pages/dashboard/TenantCreate";
 import Issue from "./issue/issue";
 import { Ticket } from "lucide-react";
 import TicketSuperAdmin from "./issue/ticket";
+import TenantPlans from "./pages/dashboard/tenantPlans";
 
 // Layout component for protected routes
 const ProtectedLayout = ({ children }) => {
@@ -227,6 +228,14 @@ function App() {
                     </ProtectedLayout>
                   }
                 />
+               {/* <Route
+                  path="/tenantPlans"
+                  element={
+                    <ProtectedLayout>
+                      <TenantPlans />
+                    </ProtectedLayout>
+                  }
+                /> */}
               </Routes>
             </ProtectedRoute>
           }
