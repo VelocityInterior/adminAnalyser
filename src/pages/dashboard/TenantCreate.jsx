@@ -499,7 +499,7 @@ export default function TenantP() {
                         </TableCell>
                         <TableCell>
                           <div className="flex justify-end space-x-2">
-                            <Button
+                            {/* <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handlePlanChange(item)}
@@ -507,7 +507,7 @@ export default function TenantP() {
                               title="Change Plan"
                             >
                               <CreditCard className="h-3 w-3" />
-                            </Button>
+                            </Button> */}
                             <Button
                               variant="outline"
                               size="sm"
@@ -564,13 +564,13 @@ export default function TenantP() {
         />
 
         {/* Plan Change Dialog */}
-        <PlanChangeDialog
+        {/* <PlanChangeDialog
           open={showPlanDialog}
           onClose={handlePlanDialogClose}
           onSuccess={handlePlanChangeSuccess}
           tenant={selectedTenant}
           plans={Array.isArray(plans) ? plans : []}
-        />
+        /> */}
 
         {/* Plan Update Overlay */}
         {/* {planUpdating && (
