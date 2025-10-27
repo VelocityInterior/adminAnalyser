@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -8,118 +10,127 @@ import {
 } from "../../components/ui/dialog";
 import { Button } from "../../components/ui/button";
 import { Label } from "../../components/ui/label";
-import { Input } from "../../components/ui/input";
 import {
   Select,
-  SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectContent,
+  SelectItem,
 } from "../../components/ui/select";
-import { Calendar } from "../../components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
-import { CalendarIcon, CreditCard, Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
+import { CreditCard, Loader2, Calendar, Clock } from "lucide-react";
 import axiosInstance from "../../api/axios";
 import { toast } from "react-hot-toast";
+import moment from "moment";
 
-export default function PlanChangeDialog({ open, onClose, onSuccess, tenant, plans }) {
+export default function PlanChangeDialog({
+  open,
+  onClose,
+  onSuccess,
+  tenant,
+  plans,
+}) {
+  const [selectedPlanId, setSelectedPlanId] = useState("");
   const [loading, setLoading] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState("");
-  const [subscriptionEndDate, setSubscriptionEndDate] = useState(null);
-  const [billingCycle, setBillingCycle] = useState("monthly");
+  const [activationType, setActivationType] = useState("scheduled");
+  const [calculatedDates, setCalculatedDates] = useState({
+    startDate: null,
+    endDate: null,
+  });
 
   const plansArray = Array.isArray(plans) ? plans : [];
 
+  // Preselect first plan when dialog opens
   useEffect(() => {
     if (!tenant) return;
-
-    const planId = tenant.tenant?.planId?._id;
-    const planCycle = tenant.tenant?.planId?.billingCycle || "monthly";
-
-    if (planId) {
-      setSelectedPlan(planId);
-      setBillingCycle(planCycle);
-    } else if (plansArray.length > 0) {
-      setSelectedPlan(plansArray[0]._id);
-      setBillingCycle(plansArray[0].billingCycle || "monthly");
-    }
-
-    if (tenant.tenant?.subscriptionEndDate) {
-      setSubscriptionEndDate(new Date(tenant.tenant.subscriptionEndDate));
-    } else {
-      const defaultDate = new Date();
-      defaultDate.setMonth(defaultDate.getMonth() + 1);
-      setSubscriptionEndDate(defaultDate);
-    }
+    setSelectedPlanId(plansArray[0]?._id || "");
+    setActivationType(tenant?.planId ? "scheduled" : "immediate");
   }, [tenant, plansArray]);
 
-  const calculateEndDate = (startDate, cycle) => {
-    const date = new Date(startDate);
-    switch (cycle) {
-      case "monthly":
-        date.setMonth(date.getMonth() + 1);
-        break;
-      case "quarterly":
-        date.setMonth(date.getMonth() + 3);
-        break;
-      case "yearly":
-        date.setFullYear(date.getFullYear() + 1);
-        break;
-      default:
-        date.setMonth(date.getMonth() + 1);
-    }
-    return date;
-  };
+  const selectedPlan = plansArray.find((p) => p._id === selectedPlanId);
 
-  const handleBillingCycleChange = (cycle) => {
-    setBillingCycle(cycle);
-    if (subscriptionEndDate) {
-      setSubscriptionEndDate(calculateEndDate(new Date(), cycle));
-    }
-  };
+  // Calculate new plan start/end date
+  useEffect(() => {
+    if (!selectedPlan || !tenant) return;
 
+    const today = moment();
+    let startDate, endDate;
+
+    const daysToAdd =
+      selectedPlan.billingCycle === "monthly"
+        ? 30
+        : selectedPlan.billingCycle === "quarterly"
+        ? 90
+        : 365;
+
+    if (activationType === "immediate" || !tenant.planId) {
+      startDate = today;
+    } else {
+      startDate = moment(tenant.planEndDate);
+    }
+    endDate = startDate.clone().add(daysToAdd, "days");
+
+    setCalculatedDates({
+      startDate: startDate.toDate(),
+      endDate: endDate.toDate(),
+    });
+  }, [selectedPlan, activationType, tenant]);
+
+  // Handle form submit
   const handleSubmit = async () => {
-    if (!selectedPlan || !subscriptionEndDate) {
-      toast.error("Please select a plan and subscription end date");
+    if (!selectedPlanId) {
+      toast.error("Please select a plan");
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
-      
-      // Add 5-second delay before making the API call
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      
-      const updateData = {
-        planId: selectedPlan,
-        billingCycle,
-        subscriptionEndDate: subscriptionEndDate.toISOString(),
-        isSubscriptionActive: true,
+      const payload = {
+        newPlanId: selectedPlanId,
+        immediateActivation: activationType === "immediate",
       };
-      const response = await axiosInstance.put(`/tenants/${tenant.tenant._id}`, updateData);
 
-      toast.success("Plan updated successfully! Payment history recorded.");
-      onSuccess();
-
-      // Optional: display latest payment history
-      if (response.data?.tenant?.planId) {
-        console.log("New plan:", response.data.tenant.planId);
+      // Include custom dates only if user changed them
+      if (calculatedDates.startDate && calculatedDates.endDate) {
+        payload.customStartDate = calculatedDates.startDate;
+        payload.customEndDate = calculatedDates.endDate;
       }
 
-    } catch (error) {
-      console.error("Error updating plan:", error);
-      toast.error(error.response?.data?.message || "Failed to update plan");
+      const res = await axiosInstance.post(
+        `/tenants/${tenant.id}/shift-plan`,
+        payload
+      );
+
+      if (res.data.activationType === "immediate") {
+        toast.success("✅ Plan activated successfully!");
+      } else {
+        toast.success(
+          `📅 Plan scheduled to start on ${moment(
+            res.data.newPlanStartDate
+          ).format("DD MMM YYYY")}`
+        );
+      }
+
+      onSuccess();
+      handleClose();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.error || "Failed to change plan");
     } finally {
       setLoading(false);
     }
   };
 
-  const selectedPlanData = plansArray.find((plan) => plan._id === selectedPlan);
+  const handleClose = () => {
+    setSelectedPlanId("");
+    setActivationType(tenant?.planId ? "scheduled" : "immediate");
+    setCalculatedDates({ startDate: null, endDate: null });
+    onClose();
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-lg flex flex-col max-h-[80vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
@@ -127,101 +138,231 @@ export default function PlanChangeDialog({ open, onClose, onSuccess, tenant, pla
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        {/* Scrollable content */}
+        <div className="space-y-4 py-4 overflow-y-auto">
+          {/* Company Info */}
           <div className="space-y-2">
-            <Label htmlFor="tenant">Tenant</Label>
-            <Input
-              id="tenant"
-              value={tenant?.tenant?.name || ""}
-              disabled
-              className="bg-muted"
-            />
+            <Label>Company</Label>
+            <div className="p-3 border rounded bg-gray-50 font-medium">
+              {tenant?.name || ""}
+            </div>
           </div>
 
+          {/* Current Plan */}
+          {tenant?.plan && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-black">
+              <h4 className="font-medium text-blue-900">Current Plan</h4>
+              <div className="mt-1 text-sm">
+                <div>
+                  <strong>{tenant.plan}</strong>
+                </div>
+                <div>
+                  Ends on:{" "}
+                  {moment(tenant.planEndDate).format("DD MMM YYYY")}
+                </div>
+                <div className="text-blue-600 font-medium mt-1">
+                  {moment(tenant.planEndDate).diff(moment(), "days")} days
+                  remaining
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Select New Plan */}
           <div className="space-y-2">
-            <Label htmlFor="plan">Select Plan</Label>
-            <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+            <Label>Select New Plan</Label>
+            <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
               <SelectTrigger>
                 <SelectValue placeholder="Choose a plan" />
               </SelectTrigger>
               <SelectContent>
-                {plansArray.map((plan) =>
-                  plan._id ? (
-                    <SelectItem key={plan._id} value={plan._id}>
-                      {plan.name} - ₹{plan.price}/{plan.billingCycle}
-                    </SelectItem>
-                  ) : null
-                )}
+                {plansArray.map((plan) => (
+                  <SelectItem key={plan._id} value={plan._id}>
+                    <div className="flex justify-between w-full">
+                      <span>{plan.name}</span>
+                      <span className="text-gray-500 ml-2">
+                        ₹{plan.price}/{plan.billingCycle}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="billing-cycle">Billing Cycle</Label>
-            <Select value={billingCycle} onValueChange={handleBillingCycleChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select billing cycle" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="monthly">Monthly</SelectItem>
-                <SelectItem value="quarterly">Quarterly</SelectItem>
-                <SelectItem value="yearly">Yearly</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Activation Type */}
+          {tenant?.planId && selectedPlan && (
+            <div className="space-y-3">
+              <Label>Activation Type</Label>
+              <RadioGroup
+                value={activationType}
+                onValueChange={setActivationType}
+                className="space-y-2"
+              >
+                <div className="flex items-center space-x-2 p-3 border rounded hover:bg-gray-50 cursor-pointer">
+                  <RadioGroupItem value="scheduled" id="scheduled" />
+                  <Label htmlFor="scheduled" className="flex-1 cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      <div>
+                        <div className="font-medium">Schedule for later</div>
+                        <div className="text-sm text-gray-500">
+                          Start after current plan ends on{" "}
+                          {moment(tenant.planEndDate).format("DD MMM YYYY")}
+                        </div>
+                      </div>
+                    </div>
+                  </Label>
+                </div>
 
-          <div className="space-y-2">
-            <Label>Subscription End Date</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {subscriptionEndDate ? format(subscriptionEndDate, "PPP") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={subscriptionEndDate}
-                  onSelect={setSubscriptionEndDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+                <div className="flex items-center space-x-2 p-3 border rounded hover:bg-gray-50 cursor-pointer">
+                  <RadioGroupItem value="immediate" id="immediate" />
+                  <Label htmlFor="immediate" className="flex-1 cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      <div>
+                        <div className="font-medium">Activate immediately</div>
+                        <div className="text-sm text-gray-500">
+                          Replace current plan now
+                        </div>
+                      </div>
+                    </div>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+          )}
 
-          {selectedPlanData && (
-            <div className="p-3 bg-muted rounded-lg space-y-2">
-              <h4 className="font-medium">Plan Details:</h4>
-              <div className="text-sm space-y-1">
-                <div>Price: ₹{selectedPlanData.price}/{selectedPlanData.billingCycle}</div>
-                <div>Users: {selectedPlanData.maxUsers || "Unlimited"}</div>
-                <div>Projects: {selectedPlanData.maxProjects || "Unlimited"}</div>
-                <div>Storage: {selectedPlanData.maxStorageMB || "Unlimited"} MB</div>
+          {/* Plan Preview */}
+          {selectedPlan && (
+            <div className="p-4 bg-gray-50 border rounded-lg space-y-3 text-black">
+              <h4 className="font-medium text-gray-900">Plan Details</h4>
+
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-600">Price</div>
+                  <div className="font-medium">
+                    ₹{selectedPlan.price}/{selectedPlan.billingCycle}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-600">Users</div>
+                  <div className="font-medium">
+                    {selectedPlan.maxUsers || "Unlimited"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-600">Projects</div>
+                  <div className="font-medium">
+                    {selectedPlan.maxProjects || "Unlimited"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-600">Storage</div>
+                  <div className="font-medium">
+                    {selectedPlan.maxStorageMB
+                      ? `${selectedPlan.maxStorageMB} MB`
+                      : "Unlimited"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Dates Section */}
+              <div className="border-t pt-3 space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Auto Start Date:</span>
+                  <span className="font-medium">
+                    {calculatedDates.startDate
+                      ? moment(calculatedDates.startDate).format("DD MMM YYYY")
+                      : "Calculating..."}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Auto End Date:</span>
+                  <span className="font-medium">
+                    {calculatedDates.endDate
+                      ? moment(calculatedDates.endDate).format("DD MMM YYYY")
+                      : "Calculating..."}
+                  </span>
+                </div>
+
+                {/* Custom date pickers */}
+                <div className="space-y-2 mt-3">
+                  <Label>Custom Subscription Dates (optional)</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Start Date</Label>
+                      <input
+                        type="date"
+                        className="w-full border rounded p-2"
+                        value={
+                          calculatedDates.startDate
+                            ? moment(calculatedDates.startDate).format(
+                                "YYYY-MM-DD"
+                              )
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setCalculatedDates((prev) => ({
+                            ...prev,
+                            startDate: moment(e.target.value).toDate(),
+                          }))
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label>End Date</Label>
+                      <input
+                        type="date"
+                        className="w-full border rounded p-2"
+                        value={
+                          calculatedDates.endDate
+                            ? moment(calculatedDates.endDate).format(
+                                "YYYY-MM-DD"
+                              )
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setCalculatedDates((prev) => ({
+                            ...prev,
+                            endDate: moment(e.target.value).toDate(),
+                          }))
+                        }
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Leave blank to auto-calculate based on billing cycle.
+                  </p>
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
+        {/* Footer */}
+        <DialogFooter className="gap-2 sm:gap-0 mt-4 flex-shrink-0">
+          <Button variant="outline" onClick={handleClose} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={loading || !selectedPlan}>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading || !selectedPlanId}
+            className="min-w-24"
+          >
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Updating Plan...
+                Updating...
               </>
+            ) : activationType === "immediate" ? (
+              "Change Now"
             ) : (
-              "Update Plan"
+              "Schedule Change"
             )}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-}
+} 
